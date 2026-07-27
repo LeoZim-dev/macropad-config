@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configurateur Macropad 3D</title>
+    <link rel="manifest" href="manifest.json">
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #121212; color: #fff; text-align: center; padding: 20px; }
+        .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; max-width: 500px; margin: 30px auto; }
+        .card { background: #1e1e1e; border: 2px solid #333; padding: 15px; border-radius: 12px; }
+        .card input { width: 90%; padding: 8px; margin-top: 10px; background: #2a2a2a; border: 1px solid #444; color: #fff; border-radius: 6px; }
+        button { background: #00e676; color: #000; font-weight: bold; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; margin-bottom: 20px; }
+        button:hover { background: #00c853; }
+        .status { color: #888; font-size: 0.9em; }
+    </style>
+</head>
+<body>
+
+    <h1>🎛️ Configurateur Macropad</h1>
+    <button id="connectBtn">Se connecter en Web Bluetooth</button>
+    <p class="status" id="status">Statut : Non connecté</p>
+
+    <div class="grid" id="keysContainer"></div>
+
+    <script>
+        const SERVICE_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b";
+        const CHARACTERISTIC_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8";
+        let configCharacteristic = null;
+
+        // Générer la grille des 8 touches
+        const container = document.getElementById('keysContainer');
+        for (let i = 0; i < 8; i++) {
+            container.innerHTML += `
+                <div class="card">
+                    <h3>Touche ${i + 1}</h3>
+                    <input type="text" id="key-${i}" placeholder="Ex: CTRL+C" onchange="sendMacro(${i})">
+                </div>
+            `;
+        }
+
+        // Connexion Web Bluetooth
+        document.getElementById('connectBtn').addEventListener('click', async () => {
+            try {
+                const device = await navigator.bluetooth.requestDevice({
+                    filters: [{ name: 'Macropad 3D Config' }],
+                    optionalServices: [SERVICE_UUID]
+                });
+
+                const server = await device.gatt.connect();
+                const service = await server.getPrimaryService(SERVICE_UUID);
+                configCharacteristic = await service.getCharacteristic(CHARACTERISTIC_UUID);
+
+                document.getElementById('status').innerText = "Statut : Connecté à l'ESP32 !";
+                document.getElementById('status').style.color = "#00e676";
+            } catch (error) {
+                console.error(error);
+                alert("Erreur de connexion Bluetooth : " + error);
+            }
+        });
+
+        // Envoi de la configuration à l'ESP32
+        async function sendMacro(index) {
+            if (!configCharacteristic) {
+                alert("Veuillez d'abord connecter l'appareil en Bluetooth.");
+                return;
+            }
+            const value = document.getElementById(`key-${index}`).value;
+            const payload = `${index}:${value}`;
+            
+            const encoder = new TextEncoder();
+            await configCharacteristic.writeValue(encoder.encode(payload));
+            console.log("Envoyé :", payload);
+        }
+
+        // Enregistrement du Service Worker (Hors-ligne)
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js');
+        }
+    </script>
+</body>
+</html>
