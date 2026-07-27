@@ -6,18 +6,72 @@
     <title>Configurateur Macropad 3D</title>
     <link rel="manifest" href="manifest.json">
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #121212; color: #fff; text-align: center; padding: 20px; }
-        .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; max-width: 500px; margin: 30px auto; }
-        .card { background: #1e1e1e; border: 2px solid #333; padding: 15px; border-radius: 12px; }
-        .card input { width: 90%; padding: 8px; margin-top: 10px; background: #2a2a2a; border: 1px solid #444; color: #fff; border-radius: 6px; }
-        button { background: #00e676; color: #000; font-weight: bold; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; margin-bottom: 20px; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background: #121212; 
+            color: #ffffff; 
+            text-align: center; 
+            padding: 20px; 
+            margin: 0;
+        }
+        h1 { margin-bottom: 10px; }
+        .subtitle { color: #888; font-size: 0.95em; margin-bottom: 25px; }
+        button { 
+            background: #00e676; 
+            color: #000000; 
+            font-weight: bold; 
+            font-size: 1em;
+            border: none; 
+            padding: 14px 28px; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            transition: background 0.2s ease-in-out;
+            box-shadow: 0 4px 12px rgba(0, 230, 118, 0.2);
+        }
         button:hover { background: #00c853; }
-        .status { color: #888; font-size: 0.9em; }
+        .status { 
+            font-weight: 500; 
+            margin-top: 15px; 
+            font-size: 1em; 
+            color: #ffa726; 
+        }
+        .grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
+            gap: 15px; 
+            max-width: 700px; 
+            margin: 30px auto; 
+        }
+        .card { 
+            background: #1e1e1e; 
+            border: 1px solid #333; 
+            padding: 20px; 
+            border-radius: 12px; 
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+        .card h3 { margin-top: 0; color: #00e676; font-size: 1.1em; }
+        .card input { 
+            width: 85%; 
+            padding: 10px; 
+            margin-top: 10px; 
+            background: #2a2a2a; 
+            border: 1px solid #444; 
+            color: #fff; 
+            border-radius: 6px; 
+            font-size: 0.9em;
+            text-align: center;
+        }
+        .card input:focus {
+            outline: none;
+            border-color: #00e676;
+        }
     </style>
 </head>
 <body>
 
     <h1>🎛️ Configurateur Macropad</h1>
+    <p class="subtitle">Gestionnaire de macros ultra-léger pour ESP32</p>
+    
     <button id="connectBtn">Se connecter en Web Bluetooth</button>
     <p class="status" id="status">Statut : Non connecté</p>
 
@@ -28,7 +82,7 @@
         const CHARACTERISTIC_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8";
         let configCharacteristic = null;
 
-        // Générer la grille des 8 touches
+        // Générer dynamiquement la grille des 8 touches
         const container = document.getElementById('keysContainer');
         for (let i = 0; i < 8; i++) {
             container.innerHTML += `
@@ -41,41 +95,56 @@
 
         // Connexion Web Bluetooth
         document.getElementById('connectBtn').addEventListener('click', async () => {
+            const statusEl = document.getElementById('status');
             try {
+                statusEl.innerText = "Recherche d'appareils Bluetooth...";
+                statusEl.style.color = "#ffa726";
+                
+                // Recherche tolérante montrant tous les périphériques BLE
                 const device = await navigator.bluetooth.requestDevice({
-                    filters: [{ name: 'Macropad 3D Config' }],
+                    acceptAllDevices: true,
                     optionalServices: [SERVICE_UUID]
                 });
+
+                statusEl.innerText = "Connexion à " + (device.name || "l'appareil") + "...";
 
                 const server = await device.gatt.connect();
                 const service = await server.getPrimaryService(SERVICE_UUID);
                 configCharacteristic = await service.getCharacteristic(CHARACTERISTIC_UUID);
 
-                document.getElementById('status').innerText = "Statut : Connecté à l'ESP32 !";
-                document.getElementById('status').style.color = "#00e676";
+                statusEl.innerText = "🟢 Connecté à l'ESP32 !";
+                statusEl.style.color = "#00e676";
             } catch (error) {
                 console.error(error);
-                alert("Erreur de connexion Bluetooth : " + error);
+                statusEl.innerText = "🔴 Erreur : " + error.message;
+                statusEl.style.color = "#ff5252";
             }
         });
 
         // Envoi de la configuration à l'ESP32
         async function sendMacro(index) {
             if (!configCharacteristic) {
-                alert("Veuillez d'abord connecter l'appareil en Bluetooth.");
+                alert("Veuillez d'abord vous connecter à l'ESP32 en Bluetooth.");
                 return;
             }
             const value = document.getElementById(`key-${index}`).value;
             const payload = `${index}:${value}`;
             
-            const encoder = new TextEncoder();
-            await configCharacteristic.writeValue(encoder.encode(payload));
-            console.log("Envoyé :", payload);
+            try {
+                const encoder = new TextEncoder();
+                await configCharacteristic.writeValue(encoder.encode(payload));
+                console.log("Macro envoyée avec succès :", payload);
+            } catch (err) {
+                console.error("Erreur d'envoi :", err);
+                alert("Erreur lors de l'envoi de la touche.");
+            }
         }
 
-        // Enregistrement du Service Worker (Hors-ligne)
+        // Enregistrement du Service Worker (Pour accès 100% hors-ligne)
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js');
+            navigator.serviceWorker.register('sw.js').catch(err => {
+                console.log("Erreur d'enregistrement du ServiceWorker :", err);
+            });
         }
     </script>
 </body>
