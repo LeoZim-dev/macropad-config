@@ -76,9 +76,9 @@
                     <td>Entrée, Échap, Tabulation, Espace, Suppr, Impr. Écran</td>
                 </tr>
                 <tr>
-                    <td><b>Texte brut</b></td>
-                    <td><code>Bonjour</code> ou <code>1234</code></td>
-                    <td>Saisit automatiquement tout le texte écrit</td>
+                    <td><b>Texte brut & Symboles</b></td>
+                    <td><code>Bonjour</code> / <code>1234</code> / <code>/</code></td>
+                    <td>Saisit automatiquement le texte ou symbole</td>
                 </tr>
             </tbody>
         </table>
@@ -90,10 +90,13 @@
 
         const container = document.getElementById('keysContainer');
         for (let i = 0; i < 8; i++) {
+            // Récupère la valeur sauvegardée dans le navigateur (ou chaîne vide par défaut)
+            const savedValue = localStorage.getItem(`macro_key_${i}`) || '';
+            
             container.innerHTML += `
                 <div class="card">
                     <h3>Touche ${i + 1}</h3>
-                    <input type="text" id="key-${i}" placeholder="Ex: CTRL+C" onchange="sendMacro(${i})">
+                    <input type="text" id="key-${i}" value="${savedValue}" placeholder="Ex: CTRL+C" onchange="sendMacro(${i})">
                 </div>
             `;
         }
@@ -120,13 +123,19 @@
         });
 
         async function sendMacro(index) {
+            const inputEl = document.getElementById(`key-${index}`);
+            const value = inputEl.value;
+
+            // 1. Sauvegarde instantanée dans le navigateur
+            localStorage.setItem(`macro_key_${index}`, value);
+
+            // 2. Envoi à l'ESP32 si connecté
             if (!writer) {
-                alert("Veuillez d'abord connecter l'ESP32 en USB.");
+                alert("Valeur sauvegardée sur la page web ! N'oublie pas de te connecter en USB pour la pousser sur l'ESP32.");
                 return;
             }
-            const value = document.getElementById(`key-${index}`).value;
+
             const payload = `SET:${index}:${value}\n`;
-            
             const encoder = new TextEncoder();
             await writer.write(encoder.encode(payload));
             console.log("Envoyé via USB :", payload);
