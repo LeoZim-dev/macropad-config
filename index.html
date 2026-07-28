@@ -6,25 +6,83 @@
     <title>Configurateur Macropad 3D (USB)</title>
     <link rel="manifest" href="manifest.json">
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #121212; color: #fff; text-align: center; padding: 20px; }
-        button { background: #00e676; color: #000; font-weight: bold; border: none; padding: 14px 28px; border-radius: 8px; cursor: pointer; font-size: 1em; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #121212; color: #fff; text-align: center; padding: 20px; margin: 0; }
+        h1 { margin-bottom: 5px; }
+        button { background: #00e676; color: #000; font-weight: bold; border: none; padding: 14px 28px; border-radius: 8px; cursor: pointer; font-size: 1em; transition: 0.2s; box-shadow: 0 4px 12px rgba(0, 230, 118, 0.2); }
         button:hover { background: #00c853; }
         .status { font-weight: 500; margin-top: 15px; color: #ffa726; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; max-width: 700px; margin: 30px auto; }
-        .card { background: #1e1e1e; border: 1px solid #333; padding: 20px; border-radius: 12px; }
-        .card h3 { margin-top: 0; color: #00e676; }
-        .card input { width: 85%; padding: 10px; margin-top: 10px; background: #2a2a2a; border: 1px solid #444; color: #fff; border-radius: 6px; text-align: center; }
+        
+        /* Grille des boutons */
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; max-width: 800px; margin: 25px auto; }
+        .card { background: #1e1e1e; border: 1px solid #333; padding: 15px; border-radius: 12px; }
+        .card h3 { margin-top: 0; color: #00e676; font-size: 1em; }
+        .card input { width: 85%; padding: 10px; margin-top: 5px; background: #2a2a2a; border: 1px solid #444; color: #fff; border-radius: 6px; text-align: center; font-weight: bold; }
+        
+        /* Section Guide / Table des fonctions */
+        .guide-container { max-width: 800px; margin: 40px auto; background: #1e1e1e; border: 1px solid #333; border-radius: 12px; padding: 20px; text-align: left; }
+        .guide-container h2 { color: #00e676; margin-top: 0; font-size: 1.2em; text-align: center; }
+        .guide-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        .guide-table th, .guide-table td { padding: 10px 12px; border-bottom: 1px solid #333; font-size: 0.9em; }
+        .guide-table th { color: #888; text-transform: uppercase; font-size: 0.8em; letter-spacing: 1px; }
+        .guide-table code { background: #2a2a2a; color: #00e676; padding: 3px 6px; border-radius: 4px; font-family: monospace; font-size: 1em; }
     </style>
 </head>
 <body>
 
     <h1>🎛️ Configurateur Macropad</h1>
-    <p style="color:#888;">Branche l'ESP32 en USB pour configurer les touches</p>
+    <p style="color:#888; margin-bottom: 20px;">Branche l'ESP32 en USB pour configurer les touches</p>
     
     <button id="connectBtn">Se connecter en USB (Série)</button>
     <p class="status" id="status">Statut : Non connecté</p>
 
+    <!-- Grille des 8 touches -->
     <div class="grid" id="keysContainer"></div>
+
+    <!-- Guide des commandes -->
+    <div class="guide-container">
+        <h2>📖 Guide des commandes à écrire</h2>
+        <table class="guide-table">
+            <thead>
+                <tr>
+                    <th>Type de commande</th>
+                    <th>À écrire dans la case</th>
+                    <th>Description / Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><b>Raccourcis classiques</b></td>
+                    <td><code>CTRL+C</code> / <code>CTRL+V</code> / <code>CTRL+Z</code></td>
+                    <td>Copier, Coller, Annuler...</td>
+                </tr>
+                <tr>
+                    <td><b>Combinaisons complexes</b></td>
+                    <td><code>WIN+SHIFT+S</code> / <code>CTRL+ALT+DEL</code></td>
+                    <td>Capture d'écran Windows, Gestionnaire des tâches...</td>
+                </tr>
+                <tr>
+                    <td><b>Touches de fonction + combo</b></td>
+                    <td><code>F3</code> / <code>F5</code> / <code>F3+T</code></td>
+                    <td>Touches F1 à F12 (seules ou combinées)</td>
+                </tr>
+                <tr>
+                    <td><b>Modificateurs supportés</b></td>
+                    <td><code>CTRL</code>, <code>SHIFT</code>, <code>ALT</code>, <code>WIN</code> (ou <code>GUI</code>)</td>
+                    <td>À combiner avec <code>+</code> et n'importe quelle lettre</td>
+                </tr>
+                <tr>
+                    <td><b>Touches spéciales</b></td>
+                    <td><code>ENTER</code>, <code>ESC</code>, <code>TAB</code>, <code>SPACE</code>, <code>DELETE</code>, <code>PRTSC</code></td>
+                    <td>Entrée, Échap, Tabulation, Espace, Suppr, Impr. Écran</td>
+                </tr>
+                <tr>
+                    <td><b>Texte brut</b></td>
+                    <td><code>Bonjour</code> ou <code>1234</code></td>
+                    <td>Saisit automatiquement tout le texte écrit</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
 
     <script>
         let port = null;
@@ -48,10 +106,8 @@
             }
 
             try {
-                // Demande à l'utilisateur de choisir le port COM (ex: CP2102)
                 port = await navigator.serial.requestPort();
                 await port.open({ baudRate: 115200 });
-
                 writer = port.writable.getWriter();
 
                 statusEl.innerText = "🟢 Connecté en USB à l'ESP32 !";
