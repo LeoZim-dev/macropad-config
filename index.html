@@ -3,86 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Configurateur Macropad 3D</title>
+    <title>Configurateur Macropad 3D (USB)</title>
     <link rel="manifest" href="manifest.json">
     <style>
-        body { 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-            background: #121212; 
-            color: #ffffff; 
-            text-align: center; 
-            padding: 20px; 
-            margin: 0;
-        }
-        h1 { margin-bottom: 10px; }
-        .subtitle { color: #888; font-size: 0.95em; margin-bottom: 25px; }
-        button { 
-            background: #00e676; 
-            color: #000000; 
-            font-weight: bold; 
-            font-size: 1em;
-            border: none; 
-            padding: 14px 28px; 
-            border-radius: 8px; 
-            cursor: pointer; 
-            transition: background 0.2s ease-in-out;
-            box-shadow: 0 4px 12px rgba(0, 230, 118, 0.2);
-        }
+        body { font-family: 'Segoe UI', sans-serif; background: #121212; color: #fff; text-align: center; padding: 20px; }
+        button { background: #00e676; color: #000; font-weight: bold; border: none; padding: 14px 28px; border-radius: 8px; cursor: pointer; font-size: 1em; }
         button:hover { background: #00c853; }
-        .status { 
-            font-weight: 500; 
-            margin-top: 15px; 
-            font-size: 1em; 
-            color: #ffa726; 
-        }
-        .grid { 
-            display: grid; 
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
-            gap: 15px; 
-            max-width: 700px; 
-            margin: 30px auto; 
-        }
-        .card { 
-            background: #1e1e1e; 
-            border: 1px solid #333; 
-            padding: 20px; 
-            border-radius: 12px; 
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-        }
-        .card h3 { margin-top: 0; color: #00e676; font-size: 1.1em; }
-        .card input { 
-            width: 85%; 
-            padding: 10px; 
-            margin-top: 10px; 
-            background: #2a2a2a; 
-            border: 1px solid #444; 
-            color: #fff; 
-            border-radius: 6px; 
-            font-size: 0.9em;
-            text-align: center;
-        }
-        .card input:focus {
-            outline: none;
-            border-color: #00e676;
-        }
+        .status { font-weight: 500; margin-top: 15px; color: #ffa726; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; max-width: 700px; margin: 30px auto; }
+        .card { background: #1e1e1e; border: 1px solid #333; padding: 20px; border-radius: 12px; }
+        .card h3 { margin-top: 0; color: #00e676; }
+        .card input { width: 85%; padding: 10px; margin-top: 10px; background: #2a2a2a; border: 1px solid #444; color: #fff; border-radius: 6px; text-align: center; }
     </style>
 </head>
 <body>
 
     <h1>🎛️ Configurateur Macropad</h1>
-    <p class="subtitle">Gestionnaire de macros ultra-léger pour ESP32</p>
+    <p style="color:#888;">Branche l'ESP32 en USB pour configurer les touches</p>
     
-    <button id="connectBtn">Se connecter en Web Bluetooth</button>
+    <button id="connectBtn">Se connecter en USB (Série)</button>
     <p class="status" id="status">Statut : Non connecté</p>
 
     <div class="grid" id="keysContainer"></div>
 
     <script>
-        const SERVICE_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b";
-        const CHARACTERISTIC_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8";
-        let configCharacteristic = null;
+        let port = null;
+        let writer = null;
 
-        // Générer dynamiquement la grille des 8 touches
         const container = document.getElementById('keysContainer');
         for (let i = 0; i < 8; i++) {
             container.innerHTML += `
@@ -93,58 +40,44 @@
             `;
         }
 
-        // Connexion Web Bluetooth
         document.getElementById('connectBtn').addEventListener('click', async () => {
             const statusEl = document.getElementById('status');
+            if (!("serial" in navigator)) {
+                alert("Votre navigateur ne supporte pas le Web Serial (utilisez Chrome ou Edge sur PC).");
+                return;
+            }
+
             try {
-                statusEl.innerText = "Recherche d'appareils Bluetooth...";
-                statusEl.style.color = "#ffa726";
-                
-                // Recherche tolérante montrant tous les périphériques BLE
-                const device = await navigator.bluetooth.requestDevice({
-                    acceptAllDevices: true,
-                    optionalServices: [SERVICE_UUID]
-                });
+                // Demande à l'utilisateur de choisir le port COM (ex: CP2102)
+                port = await navigator.serial.requestPort();
+                await port.open({ baudRate: 115200 });
 
-                statusEl.innerText = "Connexion à " + (device.name || "l'appareil") + "...";
+                writer = port.writable.getWriter();
 
-                const server = await device.gatt.connect();
-                const service = await server.getPrimaryService(SERVICE_UUID);
-                configCharacteristic = await service.getCharacteristic(CHARACTERISTIC_UUID);
-
-                statusEl.innerText = "🟢 Connecté à l'ESP32 !";
+                statusEl.innerText = "🟢 Connecté en USB à l'ESP32 !";
                 statusEl.style.color = "#00e676";
-            } catch (error) {
-                console.error(error);
-                statusEl.innerText = "🔴 Erreur : " + error.message;
+            } catch (err) {
+                console.error(err);
+                statusEl.innerText = "🔴 Erreur de connexion USB : " + err.message;
                 statusEl.style.color = "#ff5252";
             }
         });
 
-        // Envoi de la configuration à l'ESP32
         async function sendMacro(index) {
-            if (!configCharacteristic) {
-                alert("Veuillez d'abord vous connecter à l'ESP32 en Bluetooth.");
+            if (!writer) {
+                alert("Veuillez d'abord connecter l'ESP32 en USB.");
                 return;
             }
             const value = document.getElementById(`key-${index}`).value;
-            const payload = `${index}:${value}`;
+            const payload = `SET:${index}:${value}\n`;
             
-            try {
-                const encoder = new TextEncoder();
-                await configCharacteristic.writeValue(encoder.encode(payload));
-                console.log("Macro envoyée avec succès :", payload);
-            } catch (err) {
-                console.error("Erreur d'envoi :", err);
-                alert("Erreur lors de l'envoi de la touche.");
-            }
+            const encoder = new TextEncoder();
+            await writer.write(encoder.encode(payload));
+            console.log("Envoyé via USB :", payload);
         }
 
-        // Enregistrement du Service Worker (Pour accès 100% hors-ligne)
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js').catch(err => {
-                console.log("Erreur d'enregistrement du ServiceWorker :", err);
-            });
+            navigator.serviceWorker.register('sw.js');
         }
     </script>
 </body>
