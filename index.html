@@ -8,21 +8,41 @@
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #121212; color: #fff; text-align: center; padding: 20px; margin: 0; }
         h1 { margin-bottom: 5px; }
-        button { background: #00e676; color: #000; font-weight: bold; border: none; padding: 14px 28px; border-radius: 8px; cursor: pointer; font-size: 1em; transition: 0.2s; box-shadow: 0 4px 12px rgba(0, 230, 118, 0.2); }
-        button:hover { background: #00c853; }
+        
+        /* BOUTONS GENERAUX */
+        button.btn-main { background: #00e676; color: #000; font-weight: bold; border: none; padding: 14px 28px; border-radius: 8px; cursor: pointer; font-size: 1em; transition: 0.2s; box-shadow: 0 4px 12px rgba(0, 230, 118, 0.2); }
+        button.btn-main:hover { background: #00c853; }
+        
         .status { font-weight: 500; margin-top: 15px; color: #ffa726; }
         
+        /* GRILLE DE TOUCHES */
         .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; max-width: 800px; margin: 25px auto; }
         .card { background: #1e1e1e; border: 1px solid #333; padding: 15px; border-radius: 12px; }
         .card h3 { margin-top: 0; color: #00e676; font-size: 1em; }
         .card input { width: 85%; padding: 10px; margin-top: 5px; background: #2a2a2a; border: 1px solid #444; color: #fff; border-radius: 6px; text-align: center; font-weight: bold; }
         
-        .guide-container { max-width: 800px; margin: 40px auto; background: #1e1e1e; border: 1px solid #333; border-radius: 12px; padding: 20px; text-align: left; }
-        .guide-container h2 { color: #00e676; margin-top: 0; font-size: 1.2em; text-align: center; }
-        .guide-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        /* GIGA TABLE D'AIDE INTEGREE */
+        .guide-container { max-width: 850px; margin: 40px auto; background: #1e1e1e; border: 1px solid #333; border-radius: 12px; padding: 20px; text-align: left; }
+        .guide-container h2 { color: #00e676; margin-top: 0; font-size: 1.3em; text-align: center; }
+        
+        .search-bar { width: 100%; padding: 12px; margin: 15px 0; border-radius: 8px; border: 1px solid #444; background: #2a2a2a; color: #fff; box-sizing: border-box; outline: none; font-size: 0.95em; }
+        .search-bar:focus { border-color: #00e676; }
+
+        .table-wrapper { overflow-x: auto; max-height: 500px; overflow-y: auto; }
+        .guide-table { width: 100%; border-collapse: collapse; }
         .guide-table th, .guide-table td { padding: 10px 12px; border-bottom: 1px solid #333; font-size: 0.9em; }
-        .guide-table th { color: #888; text-transform: uppercase; font-size: 0.8em; letter-spacing: 1px; }
-        .guide-table code { background: #2a2a2a; color: #00e676; padding: 3px 6px; border-radius: 4px; font-family: monospace; font-size: 1em; }
+        .guide-table th { background: #121212; color: #888; text-transform: uppercase; font-size: 0.8em; letter-spacing: 1px; position: sticky; top: 0; }
+        
+        .badge { display: inline-block; padding: 3px 6px; border-radius: 4px; font-size: 0.75em; font-weight: bold; text-transform: uppercase; }
+        .badge-media { background: rgba(74, 222, 128, 0.2); color: #4ade80; }
+        .badge-fkey { background: rgba(192, 132, 252, 0.2); color: #c084fc; }
+        .badge-app { background: rgba(251, 146, 60, 0.2); color: #fb923c; }
+        .badge-sys { background: rgba(56, 189, 248, 0.2); color: #38bdf8; }
+
+        .guide-table code { background: #2a2a2a; color: #00e676; padding: 3px 6px; border-radius: 4px; font-family: monospace; font-size: 0.95em; border: 1px solid #444; }
+        
+        .copy-btn { background: #2a2a2a; border: 1px solid #444; color: #aaa; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.8em; transition: 0.2s; }
+        .copy-btn:hover { background: #00e676; color: #000; border-color: #00e676; }
     </style>
 </head>
 <body>
@@ -30,44 +50,143 @@
     <h1>🎛️ Configurateur Macropad</h1>
     <p style="color:#888; margin-bottom: 20px;">Branche ton ESP32 en USB pour charger sa configuration</p>
     
-    <button id="connectBtn">Se connecter & Lire l'ESP32</button>
+    <button id="connectBtn" class="btn-main">Se connecter & Lire l'ESP32</button>
     <p class="status" id="status">Statut : Non connecté</p>
 
+    <!-- LES 8 CASES DES TOUCHES -->
     <div class="grid" id="keysContainer"></div>
 
+    <!-- GIGA TABLE D'AIDE -->
     <div class="guide-container">
-        <h2>📖 Guide des commandes à écrire</h2>
-        <table class="guide-table">
-            <thead>
-                <tr>
-                    <th>Type de commande</th>
-                    <th>Exemple</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td><b>Raccourcis</b></td>
-                    <td><code>CTRL+C</code> / <code>CTRL+Z</code></td>
-                    <td>Copier, Annuler...</td>
-                </tr>
-                <tr>
-                    <td><b>Combos complexes</b></td>
-                    <td><code>WIN+SHIFT+S</code></td>
-                    <td>Capture d'écran Windows</td>
-                </tr>
-                <tr>
-                    <td><b>Touches F1-F12</b></td>
-                    <td><code>F3</code> / <code>F3+T</code></td>
-                    <td>Touches de fonction</td>
-                </tr>
-                <tr>
-                    <td><b>Texte & Symboles</b></td>
-                    <td><code>Bonjour</code> / <code>/</code></td>
-                    <td>Saisie automatique de texte</td>
-                </tr>
-            </tbody>
-        </table>
+        <h2>📖 Guide Complet des Commandes Macropad</h2>
+        
+        <input type="text" id="helpSearch" class="search-bar" placeholder="🔍 Rechercher une commande (ex: Mute, F13, Calc, Chrome, Screen)..." onkeyup="filterHelpTable()">
+
+        <div class="table-wrapper">
+            <table class="guide-table" id="helpTable">
+                <thead>
+                    <tr>
+                        <th>Catégorie</th>
+                        <th>Action / Fonction</th>
+                        <th>Commande à taper</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- MULTIMÉDIA -->
+                    <tr>
+                        <td><span class="badge badge-media">Multimédia</span></td>
+                        <td>Couper / Activer le son (Mute)</td>
+                        <td><code>MUTE</code></td>
+                        <td><button class="copy-btn" onclick="copyCode('MUTE')">Copier</button></td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-media">Multimédia</span></td>
+                        <td>Monter le son</td>
+                        <td><code>VOLUP</code></td>
+                        <td><button class="copy-btn" onclick="copyCode('VOLUP')">Copier</button></td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-media">Multimédia</span></td>
+                        <td>Baisser le son</td>
+                        <td><code>VOLDOWN</code></td>
+                        <td><button class="copy-btn" onclick="copyCode('VOLDOWN')">Copier</button></td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-media">Multimédia</span></td>
+                        <td>Lecture / Pause (Musique/Vidéo)</td>
+                        <td><code>PLAY</code></td>
+                        <td><button class="copy-btn" onclick="copyCode('PLAY')">Copier</button></td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-media">Multimédia</span></td>
+                        <td>Piste Suivante / Précédente</td>
+                        <td><code>NEXT</code> / <code>PREV</code></td>
+                        <td><button class="copy-btn" onclick="copyCode('NEXT')">Copier</button></td>
+                    </tr>
+
+                    <!-- MACROS VIRTUELLES DISCORD / OBS -->
+                    <tr>
+                        <td><span class="badge badge-fkey">Macro Virtuelle</span></td>
+                        <td>Mute Micro Discord/OBS (Touche invisible)</td>
+                        <td><code>F13</code></td>
+                        <td><button class="copy-btn" onclick="copyCode('F13')">Copier</button></td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-fkey">Macro Virtuelle</span></td>
+                        <td>Sourdine Discord / Change Scène OBS</td>
+                        <td><code>F14</code></td>
+                        <td><button class="copy-btn" onclick="copyCode('F14')">Copier</button></td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-fkey">Macro Virtuelle</span></td>
+                        <td>Autres touches de fonction virtuelles</td>
+                        <td><code>F15</code> à <code>F24</code></td>
+                        <td><button class="copy-btn" onclick="copyCode('F15')">Copier</button></td>
+                    </tr>
+
+                    <!-- APPLICATIONS -->
+                    <tr>
+                        <td><span class="badge badge-app">Application</span></td>
+                        <td>Ouvrir la Calculatrice</td>
+                        <td><code>APP:calc</code></td>
+                        <td><button class="copy-btn" onclick="copyCode('APP:calc')">Copier</button></td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-app">Application</span></td>
+                        <td>Ouvrir le Bloc-Notes</td>
+                        <td><code>APP:notepad</code></td>
+                        <td><button class="copy-btn" onclick="copyCode('APP:notepad')">Copier</button></td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-app">Application</span></td>
+                        <td>Ouvrir Google Chrome</td>
+                        <td><code>APP:chrome</code></td>
+                        <td><button class="copy-btn" onclick="copyCode('APP:chrome')">Copier</button></td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-app">Application</span></td>
+                        <td>Ouvrir un logiciel spécifique via son chemin</td>
+                        <td><code>APP:"C:\Chemin\Jeu.exe"</code></td>
+                        <td><button class="copy-btn" onclick="copyCode('APP:\&quot;C:\\Chemin\\Jeu.exe\&quot;')">Copier</button></td>
+                    </tr>
+
+                    <!-- INTERNET -->
+                    <tr>
+                        <td><span class="badge badge-sys">Internet</span></td>
+                        <td>Ouvrir un site Web dans le navigateur</td>
+                        <td><code>https://youtube.com</code></td>
+                        <td><button class="copy-btn" onclick="copyCode('https://youtube.com')">Copier</button></td>
+                    </tr>
+
+                    <!-- RACCOURCIS SYSTEME -->
+                    <tr>
+                        <td><span class="badge badge-sys">Raccourcis</span></td>
+                        <td>Copier / Coller / Annuler</td>
+                        <td><code>CTRL+C</code> / <code>CTRL+V</code> / <code>CTRL+Z</code></td>
+                        <td><button class="copy-btn" onclick="copyCode('CTRL+C')">Copier</button></td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-sys">Raccourcis</span></td>
+                        <td>Capture d'écran Windows</td>
+                        <td><code>WIN+SHIFT+S</code></td>
+                        <td><button class="copy-btn" onclick="copyCode('WIN+SHIFT+S')">Copier</button></td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-sys">Raccourcis</span></td>
+                        <td>Mute Micro Global Windows 11</td>
+                        <td><code>WIN+ALT+K</code></td>
+                        <td><button class="copy-btn" onclick="copyCode('WIN+ALT+K')">Copier</button></td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-sys">Raccourcis</span></td>
+                        <td>Gestionnaire des tâches</td>
+                        <td><code>CTRL+SHIFT+ESC</code></td>
+                        <td><button class="copy-btn" onclick="copyCode('CTRL+SHIFT+ESC')">Copier</button></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
     </div>
 
     <script>
@@ -167,6 +286,23 @@
             const payload = `SET:${index}:${value}\n`;
             const encoder = new TextEncoder();
             await writer.write(encoder.encode(payload));
+        }
+
+        // --- FONCTIONS POUR LA TABLE D'AIDE ---
+        function filterHelpTable() {
+            const input = document.getElementById("helpSearch");
+            const filter = input.value.toUpperCase();
+            const tr = document.getElementById("helpTable").getElementsByTagName("tr");
+
+            for (let i = 1; i < tr.length; i++) {
+                let text = tr[i].textContent || tr[i].innerText;
+                tr[i].style.display = (text.toUpperCase().indexOf(filter) > -1) ? "" : "none";
+            }
+        }
+
+        function copyCode(text) {
+            navigator.clipboard.writeText(text);
+            alert("Commande copiée : " + text);
         }
 
         if ('serviceWorker' in navigator) {
