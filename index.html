@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Configurateur Macropad 3D (USB)</title>
+    <title>Configurateur Macropad (USB)</title>
     <link rel="manifest" href="manifest.json">
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #121212; color: #fff; text-align: center; padding: 20px; margin: 0; }
@@ -12,13 +12,11 @@
         button:hover { background: #00c853; }
         .status { font-weight: 500; margin-top: 15px; color: #ffa726; }
         
-        /* Grille des boutons */
         .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; max-width: 800px; margin: 25px auto; }
         .card { background: #1e1e1e; border: 1px solid #333; padding: 15px; border-radius: 12px; }
         .card h3 { margin-top: 0; color: #00e676; font-size: 1em; }
         .card input { width: 85%; padding: 10px; margin-top: 5px; background: #2a2a2a; border: 1px solid #444; color: #fff; border-radius: 6px; text-align: center; font-weight: bold; }
         
-        /* Section Guide / Table des fonctions */
         .guide-container { max-width: 800px; margin: 40px auto; background: #1e1e1e; border: 1px solid #333; border-radius: 12px; padding: 20px; text-align: left; }
         .guide-container h2 { color: #00e676; margin-top: 0; font-size: 1.2em; text-align: center; }
         .guide-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
@@ -30,55 +28,43 @@
 <body>
 
     <h1>🎛️ Configurateur Macropad</h1>
-    <p style="color:#888; margin-bottom: 20px;">Branche l'ESP32 en USB pour configurer les touches</p>
+    <p style="color:#888; margin-bottom: 20px;">Branche ton ESP32 en USB pour charger sa configuration</p>
     
-    <button id="connectBtn">Se connecter en USB (Série)</button>
+    <button id="connectBtn">Se connecter & Lire l'ESP32</button>
     <p class="status" id="status">Statut : Non connecté</p>
 
-    <!-- Grille des 8 touches -->
     <div class="grid" id="keysContainer"></div>
 
-    <!-- Guide des commandes -->
     <div class="guide-container">
         <h2>📖 Guide des commandes à écrire</h2>
         <table class="guide-table">
             <thead>
                 <tr>
                     <th>Type de commande</th>
-                    <th>À écrire dans la case</th>
-                    <th>Description / Action</th>
+                    <th>Exemple</th>
+                    <th>Action</th>
                 </tr>
             </thead>
             <tbody>
                 <tr>
-                    <td><b>Raccourcis classiques</b></td>
-                    <td><code>CTRL+C</code> / <code>CTRL+V</code> / <code>CTRL+Z</code></td>
-                    <td>Copier, Coller, Annuler...</td>
+                    <td><b>Raccourcis</b></td>
+                    <td><code>CTRL+C</code> / <code>CTRL+Z</code></td>
+                    <td>Copier, Annuler...</td>
                 </tr>
                 <tr>
-                    <td><b>Combinaisons complexes</b></td>
-                    <td><code>WIN+SHIFT+S</code> / <code>CTRL+ALT+DEL</code></td>
-                    <td>Capture d'écran Windows, Gestionnaire des tâches...</td>
+                    <td><b>Combos complexes</b></td>
+                    <td><code>WIN+SHIFT+S</code></td>
+                    <td>Capture d'écran Windows</td>
                 </tr>
                 <tr>
-                    <td><b>Touches de fonction + combo</b></td>
-                    <td><code>F3</code> / <code>F5</code> / <code>F3+T</code></td>
-                    <td>Touches F1 à F12 (seules ou combinées)</td>
+                    <td><b>Touches F1-F12</b></td>
+                    <td><code>F3</code> / <code>F3+T</code></td>
+                    <td>Touches de fonction</td>
                 </tr>
                 <tr>
-                    <td><b>Modificateurs supportés</b></td>
-                    <td><code>CTRL</code>, <code>SHIFT</code>, <code>ALT</code>, <code>WIN</code> (ou <code>GUI</code>)</td>
-                    <td>À combiner avec <code>+</code> et n'importe quelle lettre</td>
-                </tr>
-                <tr>
-                    <td><b>Touches spéciales</b></td>
-                    <td><code>ENTER</code>, <code>ESC</code>, <code>TAB</code>, <code>SPACE</code>, <code>DELETE</code>, <code>PRTSC</code></td>
-                    <td>Entrée, Échap, Tabulation, Espace, Suppr, Impr. Écran</td>
-                </tr>
-                <tr>
-                    <td><b>Texte brut & Symboles</b></td>
-                    <td><code>Bonjour</code> / <code>1234</code> / <code>/</code></td>
-                    <td>Saisit automatiquement le texte ou symbole</td>
+                    <td><b>Texte & Symboles</b></td>
+                    <td><code>Bonjour</code> / <code>/</code></td>
+                    <td>Saisie automatique de texte</td>
                 </tr>
             </tbody>
         </table>
@@ -87,12 +73,12 @@
     <script>
         let port = null;
         let writer = null;
+        let reader = null;
 
+        // Génération des 8 cases
         const container = document.getElementById('keysContainer');
         for (let i = 0; i < 8; i++) {
-            // Récupère la valeur sauvegardée dans le navigateur (ou chaîne vide par défaut)
             const savedValue = localStorage.getItem(`macro_key_${i}`) || '';
-            
             container.innerHTML += `
                 <div class="card">
                     <h3>Touche ${i + 1}</h3>
@@ -113,8 +99,18 @@
                 await port.open({ baudRate: 115200 });
                 writer = port.writable.getWriter();
 
-                statusEl.innerText = "🟢 Connecté en USB à l'ESP32 !";
+                statusEl.innerText = "🟢 Connecté ! Lecture de l'ESP32 en cours...";
                 statusEl.style.color = "#00e676";
+
+                // Écoute de l'ESP32
+                readSerialLoop();
+
+                // Demande à l'ESP32 d'envoyer toute sa configuration
+                setTimeout(() => {
+                    const encoder = new TextEncoder();
+                    writer.write(encoder.encode("GET_ALL\n"));
+                }, 500);
+
             } catch (err) {
                 console.error(err);
                 statusEl.innerText = "🔴 Erreur de connexion USB : " + err.message;
@@ -122,23 +118,55 @@
             }
         });
 
+        async function readSerialLoop() {
+            const textDecoder = new TextDecoderStream();
+            const readableStreamClosed = port.readable.pipeTo(textDecoder.writable);
+            const streamReader = textDecoder.readable.getReader();
+
+            let buffer = "";
+            while (true) {
+                const { value, done } = await streamReader.read();
+                if (done) break;
+                if (value) {
+                    buffer += value;
+                    let lines = buffer.split("\n");
+                    buffer = lines.pop(); // Conserve la ligne incomplète
+
+                    for (let line of lines) {
+                        line = line.trim();
+                        if (line.startsWith("MACRO:")) {
+                            let parts = line.split(":");
+                            if (parts.length >= 3) {
+                                let idx = parseInt(parts[1]);
+                                let val = parts.slice(2).join(":"); // Recompose la valeur
+                                let inputEl = document.getElementById(`key-${idx}`);
+                                if (inputEl) {
+                                    inputEl.value = val;
+                                    localStorage.setItem(`macro_key_${idx}`, val);
+                                }
+                            }
+                            document.getElementById('status').innerText = "🟢 Configuration lue depuis l'ESP32 !";
+                        }
+                    }
+                }
+            }
+        }
+
         async function sendMacro(index) {
             const inputEl = document.getElementById(`key-${index}`);
             const value = inputEl.value;
 
-            // 1. Sauvegarde instantanée dans le navigateur
+            // Sauvegarde locale
             localStorage.setItem(`macro_key_${index}`, value);
 
-            // 2. Envoi à l'ESP32 si connecté
             if (!writer) {
-                alert("Valeur sauvegardée sur la page web ! N'oublie pas de te connecter en USB pour la pousser sur l'ESP32.");
+                alert("Changement enregistré localement. Branche l'ESP32 en USB pour lui envoyer !");
                 return;
             }
 
             const payload = `SET:${index}:${value}\n`;
             const encoder = new TextEncoder();
             await writer.write(encoder.encode(payload));
-            console.log("Envoyé via USB :", payload);
         }
 
         if ('serviceWorker' in navigator) {
