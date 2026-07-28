@@ -1,0 +1,12 @@
+<div class="header-brand">
+    <svg class="site-logo" viewBox="0 0 24 24" fill="none" stroke="#00e676" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="2" y="4" width="20" height="16" rx="3"></rect>
+        <circle cx="7" cy="9" r="1" fill="#00e676"></circle>
+        <circle cx="12" cy="9" r="1" fill="#00e676"></circle>
+        <circle cx="17" cy="9" r="1" fill="#00e676"></circle>
+        <circle cx="7" cy="15" r="1" fill="#00e676"></circle>
+        <circle cx="12" cy="15" r="1" fill="#00e676"></circle>
+        <circle cx="17" cy="15" r="1" fill="#00e676"></circle>
+    </svg>
+    <h1 class="header-title">Macropad Studio</h1>
+</div>
